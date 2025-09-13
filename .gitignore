@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Environment variables & Credentials
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+firebase-service-account.json
+firebase-adminsdk-*.json
+serviceAccountKey.json
+
+# Build outputs
+dist/
+build/
+*.local
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# IDE & Editor
+.vscode/
+.idea/
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Cache & Temporary
+.cache/
+.eslintcache
+*.tmp
+*.temp
+*.bak
+
+# Database
+*.db
+*.sqlite3
+
+# Firebase
+.firebase/
+firebase-debug.log
