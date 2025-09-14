@@ -6,7 +6,7 @@ export const kits: Kit[] = [
     name: 'Basic Care Kit',
     type: 'basic',
     basePrice: 299,
-    image: 'https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=400&h=300&fit=crop',
+    image: 'https://via.placeholder.com/400x300/ff69b4/ffffff?text=Basic+Kit',
     includedItems: ['10 Regular Pads', 'Pain Relief Sachet', 'Hygiene Wipes'],
     description: 'Essential monthly care with comfort basics'
   },
@@ -15,7 +15,7 @@ export const kits: Kit[] = [
     name: 'Comfort Care Kit',
     type: 'medium',
     basePrice: 499,
-    image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400&h=300&fit=crop',
+    image: 'https://via.placeholder.com/400x300/ff1493/ffffff?text=Comfort+Kit',
     includedItems: ['15 Ultra-Soft Pads', 'Pain Relief Sachets (3)', 'Hygiene Wipes', 'Comfort Balm'],
     description: 'Enhanced comfort with premium care essentials'
   },
@@ -24,7 +24,7 @@ export const kits: Kit[] = [
     name: 'Premium Wellness Kit',
     type: 'premium',
     basePrice: 799,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
+    image: 'https://via.placeholder.com/400x300/c71585/ffffff?text=Premium+Kit',
     includedItems: ['20 Premium Pads', 'Pain Relief Sachets (5)', 'Hygiene Wipes', 'Comfort Balm', 'Heating Pad', 'Wellness Tea'],
     description: 'Complete wellness package with luxury comfort items'
   }

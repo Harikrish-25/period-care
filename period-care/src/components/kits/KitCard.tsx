@@ -67,7 +67,7 @@ const KitCard: React.FC<KitCardProps> = ({ kit, onSelect, featured = false }) =>
             <span className="text-2xl font-bold text-pink-600">₹{kit.basePrice}</span>
           </div>
           <ul className="space-y-2">
-            {kit.includedItems.map((item, index) => (
+            {(kit.includedItems || []).map((item, index) => (
               <li key={index} className="flex items-center space-x-2 text-sm text-gray-600">
                 <Check className="w-4 h-4 text-green-500" />
                 <span>{item}</span>

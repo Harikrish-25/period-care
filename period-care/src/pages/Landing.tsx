@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import Hero from '../components/landing/Hero';
 import KitCard from '../components/kits/KitCard';
+import KitCustomizerModal from '../components/kits/KitCustomizerModal';
 import { kitsService, cmsService } from '../services/api';
+import { authService } from '../services/mockApi';
 import { Kit, Benefit, Testimonial } from '../types';
 import { Star, Quote } from 'lucide-react';
 
@@ -11,8 +14,45 @@ const Landing: React.FC = () => {
   const [benefits, setBenefits] = useState<Benefit[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [selectedKit, setSelectedKit] = useState<Kit | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Handle kit customization - redirect to login if not authenticated
+  const handleKitCustomize = (kit: Kit) => {
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) {
+      // Redirect to login page if user is not authenticated
+      navigate('/login');
+    } else {
+      // User is logged in, open the kit customizer modal
+      setSelectedKit(kit);
+      setIsModalOpen(true);
+    }
+  };
+
+  // Handle order placement from modal
+  const handleOrder = (orderData: any) => {
+    console.log('Placing order:', orderData);
+    setIsModalOpen(false);
+    setSelectedKit(null);
+    // TODO: Implement actual order placement logic
+  };
 
   useEffect(() => {
+    // Check if user is logged in
+    const currentUser = authService.getCurrentUser();
+    setIsLoggedIn(!!currentUser);
+
+    // Listen for storage changes to update login state
+    const handleStorageChange = () => {
+      const user = authService.getCurrentUser();
+      setIsLoggedIn(!!user);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
     const loadData = async () => {
       try {
         const [kitsData, benefitsData, testimonialsData] = await Promise.all([
@@ -37,6 +77,11 @@ const Landing: React.FC = () => {
     };
 
     loadData();
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   if (loading) {
@@ -54,42 +99,44 @@ const Landing: React.FC = () => {
     <div className="min-h-screen">
       <Hero />
       
-      {/* Featured Kits Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">
-              Choose Your Perfect Kit
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Three carefully curated tiers to match your comfort needs and preferences
-            </p>
-          </motion.div>
+      {/* Featured Kits Section - Only show when user is not logged in */}
+      {!isLoggedIn && (
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <motion.div
+              className="text-center mb-16"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-4xl font-bold text-gray-800 mb-4">
+                Choose Your Perfect Kit
+              </h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Three carefully curated tiers to match your comfort needs and preferences
+              </p>
+            </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
-            {kits.map((kit, index) => (
-              <motion.div
-                key={kit.id}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
-              >
-                <KitCard 
-                  kit={kit} 
-                  onSelect={() => {/* Navigate to register/login */}} 
-                  featured={kit.type === 'medium'}
-                />
-              </motion.div>
-            ))}
+            <div className="grid md:grid-cols-3 gap-8 mb-16">
+              {kits.map((kit, index) => (
+                <motion.div
+                  key={kit.id}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.2 }}
+                >
+                  <KitCard 
+                    kit={kit} 
+                    onSelect={() => handleKitCustomize(kit)} 
+                    featured={kit.type === 'medium'}
+                  />
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Benefits Section */}
       <section className="py-20 bg-gradient-to-r from-pink-50 to-purple-50">
@@ -173,6 +220,17 @@ const Landing: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Kit Customizer Modal */}
+      <KitCustomizerModal
+        kit={selectedKit}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedKit(null);
+        }}
+        onOrder={handleOrder}
+      />
     </div>
   );
 };

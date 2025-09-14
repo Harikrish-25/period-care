@@ -185,7 +185,7 @@ const Hero: React.FC = () => {
                 transition={{ duration: 3, repeat: Infinity }}
               >
                 <img 
-                  src="https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=500&h=400&fit=crop"
+                  src="https://via.placeholder.com/500x400/ff69b4/ffffff?text=Period+Care+Kit"
                   alt="Period care products"
                   className="w-full h-64 object-cover rounded-2xl"
                 />

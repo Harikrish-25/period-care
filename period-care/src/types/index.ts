@@ -44,6 +44,12 @@ export interface Order {
   createdAt: string;
   isSubscription: boolean;
   subscriptionType?: 'monthly' | '6-month' | 'yearly';
+  // WhatsApp integration fields
+  whatsapp_url?: string;
+  whatsapp_web_url?: string;
+  whatsapp_mobile_url?: string;
+  whatsapp_desktop_command?: string;
+  admin_contact?: string;
 }
 
 export interface Benefit {
