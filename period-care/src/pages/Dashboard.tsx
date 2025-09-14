@@ -1,37 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Package, MapPin, Clock, Plus } from 'lucide-react';
+import { Calendar, Package, MapPin, Plus } from 'lucide-react';
 import KitCard from '../components/kits/KitCard';
 import KitCustomizerModal from '../components/kits/KitCustomizerModal';
-import { kits } from '../data/mockData';
-import { authService, ordersService, subscriptionsService, kitsService } from '../services/mockApi';
-import { Kit, Order, Subscription } from '../types';
-import { generateWhatsAppLink, formatOrderSummary } from '../utils/whatsapp';
+import OrderSuccessPopup from '../components/layout/OrderSuccessPopup';
+import { authService, ordersService, kitsService } from '../services/api';
+import { Kit, Order, User } from '../types';
 
 const Dashboard: React.FC = () => {
   const [selectedKit, setSelectedKit] = useState<Kit | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [isSuccessPopupOpen, setIsSuccessPopupOpen] = useState(false);
+  const [orderDetails, setOrderDetails] = useState<{id: number; totalAmount: number} | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [kits, setKits] = useState<Kit[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const currentUser = authService.getCurrentUser();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadDashboardData();
   }, []);
 
   const loadDashboardData = async () => {
-    if (!currentUser) return;
-    
     try {
-      const [userSub, userOrders] = await Promise.all([
-        subscriptionsService.getUserSubscription(currentUser.id),
-        ordersService.getUserOrders(currentUser.id)
+      // Get current user
+      const user = authService.getCurrentUserFromStorage();
+      if (!user) {
+        window.location.href = '/login';
+        return;
+      }
+      setCurrentUser(user);
+      
+      // Load kits and orders
+      const [userOrders, availableKits] = await Promise.all([
+        ordersService.getUserOrders(),
+        kitsService.getAllKits()
       ]);
       
-      setSubscription(userSub);
       setRecentOrders(userOrders.slice(0, 3));
+      setKits(availableKits);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -49,39 +56,19 @@ const Dashboard: React.FC = () => {
 
     try {
       const order = await ordersService.createOrder({
-        userId: currentUser.id,
-        kitId: orderData.kitId,
-        selectedFruits: orderData.selectedFruits,
-        selectedNutrients: orderData.selectedNutrients,
-        scheduledDate: orderData.scheduledDate,
-        address: orderData.address,
-        totalAmount: orderData.totalAmount,
-        status: 'pending' as const,
-        isSubscription: orderData.isSubscription,
-        subscriptionType: orderData.subscriptionType
+        kit_id: orderData.kitId,
+        selected_fruits: orderData.selectedFruits,
+        selected_nutrients: orderData.selectedNutrients,
+        scheduled_date: orderData.scheduledDate,
+        delivery_address: orderData.address,
       });
 
-      // Create subscription if needed
-      if (orderData.isSubscription) {
-        await subscriptionsService.createSubscription({
-          userId: currentUser.id,
-          kitId: orderData.kitId,
-          selectedFruits: orderData.selectedFruits,
-          selectedNutrients: orderData.selectedNutrients,
-          type: orderData.subscriptionType,
-          nextDelivery: orderData.scheduledDate,
-          isActive: true,
-          address: orderData.address
-        });
-      }
-
-      // Generate WhatsApp link
-      const kit = kits.find(k => k.id === orderData.kitId);
-      if (kit) {
-        const orderSummary = formatOrderSummary(order, kit, currentUser);
-        const whatsappLink = generateWhatsAppLink(orderSummary);
-        window.open(whatsappLink, '_blank');
-      }
+      // Set order details for popup and show success popup
+      setOrderDetails({
+        id: parseInt(order.id),
+        totalAmount: order.totalAmount
+      });
+      setIsSuccessPopupOpen(true);
 
       setIsModalOpen(false);
       setSelectedKit(null);
@@ -89,6 +76,7 @@ const Dashboard: React.FC = () => {
       
     } catch (error) {
       console.error('Failed to create order:', error);
+      alert('Failed to place order. Please try again.');
     }
   };
 
@@ -128,21 +116,21 @@ const Dashboard: React.FC = () => {
           >
             <div className="flex items-center space-x-3 mb-3">
               <div className="bg-pink-100 p-2 rounded-full">
-                <Calendar className="w-5 h-5 text-pink-600" />
+                <Package className="w-5 h-5 text-pink-600" />
               </div>
-              <h3 className="font-semibold text-gray-800">Next Delivery</h3>
+              <h3 className="font-semibold text-gray-800">Recent Orders</h3>
             </div>
-            {subscription ? (
+            {recentOrders.length > 0 ? (
               <>
                 <p className="text-2xl font-bold text-pink-600 mb-1">
-                  {new Date(subscription.nextDelivery).toLocaleDateString()}
+                  {recentOrders.length}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {subscription.type.charAt(0).toUpperCase() + subscription.type.slice(1)} subscription active
+                  Orders placed this month
                 </p>
               </>
             ) : (
-              <p className="text-gray-500">No active subscription</p>
+              <p className="text-gray-500">No orders yet</p>
             )}
           </motion.div>
 
@@ -154,7 +142,7 @@ const Dashboard: React.FC = () => {
           >
             <div className="flex items-center space-x-3 mb-3">
               <div className="bg-purple-100 p-2 rounded-full">
-                <Package className="w-5 h-5 text-purple-600" />
+                <Calendar className="w-5 h-5 text-purple-600" />
               </div>
               <h3 className="font-semibold text-gray-800">Recent Orders</h3>
             </div>
@@ -269,6 +257,13 @@ const Dashboard: React.FC = () => {
           setSelectedKit(null);
         }}
         onOrder={handleOrder}
+      />
+
+      {/* Order Success Popup */}
+      <OrderSuccessPopup
+        isOpen={isSuccessPopupOpen}
+        onClose={() => setIsSuccessPopupOpen(false)}
+        orderDetails={orderDetails}
       />
     </div>
   );

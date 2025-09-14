@@ -1,0 +1,7 @@
+{
+  "name": "Test User Auth",
+  "email": "testauth@example.com",
+  "mobile": "9876543210",
+  "address": "Test Address, City",
+  "password": "password123"
+}

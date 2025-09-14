@@ -4,12 +4,13 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # Database Options
-    database_type: str = "firebase"  # "firebase" or "postgresql" or "sqlite"
+    database_type: str = "sqlite"  # "firebase" or "postgresql" or "sqlite"
     database_url: str = "sqlite:///./periodcare.db"  # Fallback for SQL databases
     
     # Firebase Configuration
     firebase_service_account_path: str = "./firebase-service-account.json"
     firebase_project_id: Optional[str] = None
+    use_firebase: bool = False  # Toggle Firebase usage
     
     # Security
     secret_key: str = "your-secret-key-here-change-this-in-production"

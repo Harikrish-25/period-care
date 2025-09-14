@@ -1,7 +1,7 @@
 import { User, Order, Kit, Fruit, Nutrient, Benefit, Testimonial } from '../types';
 
 // Backend API configuration
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'http://localhost:8001/api';
 
 // Helper function for API calls
 const apiCall = async (endpoint: string, options?: RequestInit) => {
@@ -12,44 +12,56 @@ const apiCall = async (endpoint: string, options?: RequestInit) => {
     ...options?.headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Network error' }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const error = await response.json();
+        errorMessage = error.detail || error.message || errorMessage;
+      } catch {
+        // If JSON parsing fails, use default error message
+        if (response.status === 422) {
+          errorMessage = 'Invalid input data. Please check your information and try again.';
+        } else if (response.status === 401) {
+          errorMessage = 'Authentication failed. Please check your credentials.';
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error: any) {
+    if (error instanceof TypeError || (error.message && error.message.includes('fetch'))) {
+      throw new Error('Unable to connect to server. Please ensure the backend is running on port 8001.');
+    }
+    throw error;
   }
-
-  return response.json();
 };
 
 // Auth service
 export const authService = {
   async login(email: string, password: string): Promise<User> {
-    const formData = new FormData();
-    formData.append('username', email);
-    formData.append('password', password);
-
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await apiCall('/auth/login', {
       method: 'POST',
-      body: formData,
+      body: JSON.stringify({
+        username: email,
+        password: password
+      }),
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Login failed' }));
-      throw new Error(error.detail || 'Login failed');
-    }
-
-    const data = await response.json();
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('refresh_token', data.refresh_token);
+    localStorage.setItem('access_token', response.access_token);
+    localStorage.setItem('refresh_token', response.refresh_token);
     
-    // Get user details
-    const user = await this.getCurrentUser();
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    return user;
+    // Store user data
+    localStorage.setItem('currentUser', JSON.stringify(response.user));
+    return response.user;
   },
 
   async register(userData: {
@@ -93,26 +105,38 @@ export const authService = {
 export const ordersService = {
   async createOrder(orderData: {
     kit_id: string;
-    selected_fruits?: string;
-    selected_nutrients?: string;
+    selected_fruits?: string[];
+    selected_nutrients?: string[];
     scheduled_date: string;
     delivery_address: string;
-  }): Promise<Order> {
+  }): Promise<Order & { 
+    whatsapp_url?: string;
+    whatsapp_web_url?: string;
+    whatsapp_mobile_url?: string;
+    whatsapp_desktop_command?: string;
+    admin_contact?: string;
+  }> {
     return apiCall('/orders/', {
       method: 'POST',
-      body: JSON.stringify(orderData),
+      body: JSON.stringify({
+        kit_id: orderData.kit_id,
+        selected_fruits: orderData.selected_fruits || [],
+        selected_nutrients: orderData.selected_nutrients || [],
+        scheduled_date: orderData.scheduled_date,
+        delivery_address: orderData.delivery_address
+      }),
     });
   },
 
   async getUserOrders(): Promise<Order[]> {
-    return apiCall('/users/orders');
-  },
-
-  async getAllOrders(): Promise<Order[]> {
     return apiCall('/orders/');
   },
 
-  async updateOrderStatus(orderId: string, status: string): Promise<Order> {
+  async getAllOrders(): Promise<Order[]> {
+    return apiCall('/orders/all');
+  },
+
+  async updateOrderStatus(orderId: string, status: string): Promise<any> {
     return apiCall(`/orders/${orderId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
